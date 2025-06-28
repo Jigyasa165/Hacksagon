@@ -1,0 +1,78 @@
+#include <DHT.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET -1
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+#define PIR_PIN D5
+#define DHTPIN D4
+#define LDR_PIN A0
+#define LIGHT1_PIN D6
+#define LIGHT2_PIN D7
+#define LIGHT3_PIN D8
+
+DHT dht(DHTPIN, DHT11);
+
+void setup() {
+  Serial.begin(115200);
+  dht.begin();
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.println("Smart Street Light");
+  display.display();
+  delay(2000);
+
+  pinMode(PIR_PIN, INPUT);
+  pinMode(LIGHT1_PIN, OUTPUT);
+  pinMode(LIGHT2_PIN, OUTPUT);
+  pinMode(LIGHT3_PIN, OUTPUT);
+  digitalWrite(LIGHT1_PIN, LOW);
+  digitalWrite(LIGHT2_PIN, LOW);
+  digitalWrite(LIGHT3_PIN, LOW);
+}
+
+void loop() {
+  int motion = digitalRead(PIR_PIN);
+  float temp = dht.readTemperature();
+  float hum = dht.readHumidity();
+  int ldrValue = analogRead(LDR_PIN);
+
+  display.clearDisplay();
+  display.setCursor(0, 0);
+
+  if (isnan(temp) || isnan(hum)) {
+    display.println("DHT11 Error");
+  } else {
+    display.print("Temp: "); display.print(temp); display.println(" C");
+    display.print("Humidity: "); display.print(hum); display.println(" %");
+  }
+
+  display.print("Light: "); display.println(ldrValue);
+  display.print("Motion: "); display.println(motion ? "YES" : "NO");
+  display.display();
+
+  if (ldrValue < 500) {
+    if (motion) {
+      digitalWrite(LIGHT1_PIN, HIGH);
+      digitalWrite(LIGHT2_PIN, HIGH);
+      digitalWrite(LIGHT3_PIN, HIGH);
+    } else {
+      digitalWrite(LIGHT1_PIN, LOW);
+      digitalWrite(LIGHT2_PIN, LOW);
+      digitalWrite(LIGHT3_PIN, LOW);
+    }
+  } else {
+    digitalWrite(LIGHT1_PIN, LOW);
+    digitalWrite(LIGHT2_PIN, LOW);
+    digitalWrite(LIGHT3_PIN, LOW);
+  }
+
+  delay(1000);
+}
